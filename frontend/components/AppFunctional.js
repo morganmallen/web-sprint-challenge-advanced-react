@@ -1,76 +1,138 @@
-import React from 'react'
-
+import React, {useState} from 'react'
+import axios from 'axios';
 // Suggested initial states
-const initialMessage = ''
-const initialEmail = ''
-const initialSteps = 0
-const initialIndex = 4 // the index the "B" is at
+// the index the "B" is at const 
+
+  
+
 
 export default function AppFunctional(props) {
+  const gridArr = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  const [moveCount, setMoveCount] = useState(0);
+  const [activeSquare, setActiveSquare] = useState(4);
+  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [xCoord, setXCoord] = useState(2);
+  const [yCoord, setYCoord] = useState(2);
+
+
+  const updateMoveCount = () => {
+    setMoveCount(moveCount + 1);
+  }
+
   // THE FOLLOWING HELPERS ARE JUST RECOMMENDATIONS.
   // You can delete them and build your own logic from scratch.
 
-  function getXY() {
-    // It it not necessary to have a state to track the coordinates.
-    // It's enough to know what index the "B" is at, to be able to calculate them.
-  }
-
-  function getXYMessage() {
-    // It it not necessary to have a state to track the "Coordinates (2, 2)" message for the user.
-    // You can use the `getXY` helper above to obtain the coordinates, and then `getXYMessage`
-    // returns the fully constructed string.
-  }
-
-  function reset() {
+  const reset =  () => {
     // Use this helper to reset all states to their initial values.
+    setMessage('');
+    setXCoord(2);
+    setYCoord(2);
+    setActiveSquare(4);
+    setMoveCount(0);
+    setEmail('');
   }
 
-  function getNextIndex(direction) {
-    // This helper takes a direction ("left", "up", etc) and calculates what the next index
-    // of the "B" would be. If the move is impossible because we are at the edge of the grid,
-    // this helper should return the current index unchanged.
+  const resetEmail =  () => {
+    setEmail('');
   }
 
-  function move(evt) {
+  const move = (evt) => {
     // This event handler can use the helper above to obtain a new index for the "B",
     // and change any states accordingly.
+    const direction = evt.target.id;
+    if (direction === 'up') {
+      if(activeSquare - 3 >= 0) {
+        setActiveSquare(activeSquare - 3);
+        setYCoord(yCoord - 1);
+        updateMoveCount();
+      } else {
+        //display message
+        setMessage("You can't go up");        
+      }
+    } else if (direction === 'down') {
+      if(activeSquare + 3 < gridArr.length) {
+        setActiveSquare(activeSquare + 3);
+        setYCoord(yCoord + 1); 
+        updateMoveCount();
+      } else {
+        //display message
+        setMessage("You can't go down");        
+
+      }
+    } else if (direction === 'left') {
+      if(activeSquare - 1 >= 0 && activeSquare % 3 !== 0) {
+        setActiveSquare(activeSquare - 1);
+        setXCoord(xCoord - 1);
+        updateMoveCount();
+      } else {
+        //display message
+        setMessage("You can't go left");        
+
+      }
+    } else if (direction === 'right') {
+      if (activeSquare + 1 < gridArr.length && activeSquare % 3 !== 2) {
+        setActiveSquare(activeSquare + 1);
+        setXCoord(xCoord + 1);
+        updateMoveCount();
+        } else {
+          //display message
+          setMessage("You can't go right");        
+
+        }
+    }
+    
   }
 
-  function onChange(evt) {
+  const onChange = (evt) => {
     // You will need this to update the value of the input.
+    const { value } = evt.target
+    setEmail(value);
   }
 
-  function onSubmit(evt) {
+  const onSubmit = (evt) => {
     // Use a POST request to send a payload to the server.
+    const tempObj = {
+      x: xCoord, 
+      y: yCoord, 
+      steps: moveCount, 
+      email: email
+    }
+    evt.preventDefault()
+    // Use a POST request to send a payload to the server.
+    axios.post('http://localhost:9000/api/result', tempObj)
+      .then(res => setMessage(res.data.message))
+      .catch((err) => setMessage(err.response.data.message))
+      resetEmail();
   }
 
   return (
     <div id="wrapper" className={props.className}>
       <div className="info">
-        <h3 id="coordinates">Coordinates (2, 2)</h3>
-        <h3 id="steps">You moved 0 times</h3>
+        <h3 id="coordinates">{`Coordinates (${xCoord}, ${yCoord})`}</h3>
+        <h3 id="steps">You moved {moveCount} {moveCount === 1 ? "time" : "times"}</h3>
       </div>
       <div id="grid">
         {
-          [0, 1, 2, 3, 4, 5, 6, 7, 8].map(idx => (
-            <div key={idx} className={`square${idx === 4 ? ' active' : ''}`}>
-              {idx === 4 ? 'B' : null}
+          gridArr.map(idx => (
+            <div key={idx} className={`square${idx === activeSquare ? ' active' : ''}`}>
+              {idx === activeSquare ? 'B' : null}
             </div>
           ))
         }
       </div>
       <div className="info">
-        <h3 id="message"></h3>
+        <h3 id="message">{message}</h3>
       </div>
       <div id="keypad">
-        <button id="left">LEFT</button>
-        <button id="up">UP</button>
-        <button id="right">RIGHT</button>
-        <button id="down">DOWN</button>
-        <button id="reset">reset</button>
+        <button onClick={(e) => move(e)} id="left">LEFT</button>
+        <button onClick={(e) => move(e)} id="up">UP</button>
+        <button onClick={(e) => move(e)} id="right">RIGHT</button>
+        <button onClick={(e) => move(e)} id="down">DOWN</button>
+        <button onClick={reset} id="reset">reset</button>
       </div>
-      <form>
-        <input id="email" type="email" placeholder="type email"></input>
+      <form onSubmit={onSubmit}>
+        <input id="email" type="email" placeholder="type email" onChange={onChange} value={email} ></input>
         <input id="submit" type="submit"></input>
       </form>
     </div>
